@@ -32,7 +32,6 @@ def is_captcha_page(status_code: int, html: str) -> bool:
         if pattern.search(html):
             return True
 
-    # If status code is 403 or 503 and generic captcha/bot words appear
     if status_code in (403, 429, 503):
         if re.search(r"\b(?:captcha|bot detection|access denied)\b", html, re.IGNORECASE):
             return True
@@ -53,11 +52,9 @@ async def check_target_site(
     try:
         response = await client.get(target_url, follow_redirects=True)
 
-        # 1. Check for Captcha on any status
         if is_captcha_page(response.status_code, response.text):
             return True, "Blocked (Captcha)"
 
-        # 2. Check HTTP status codes for blocks
         if response.status_code == 403:
             return True, "Blocked (403)"
         if response.status_code == 429:

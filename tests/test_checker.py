@@ -182,18 +182,15 @@ def test_check_proxy_with_anonymity_geo_target():
 
         def mock_get(url, **kwargs):
             if "headers" in str(url):
-                # Judge response with no proxy headers
                 return httpx.Response(
                     200,
                     text='{"headers": {"Host": "target"}}',
                     request=httpx.Request("GET", str(url)),
                 )
             if "target.com" in str(url):
-                # Target response
                 return httpx.Response(
                     200, text="<html>welcome</html>", request=httpx.Request("GET", str(url))
                 )
-            # Default IP target
             return httpx.Response(
                 200, text='{"origin": "203.0.113.50"}', request=httpx.Request("GET", str(url))
             )

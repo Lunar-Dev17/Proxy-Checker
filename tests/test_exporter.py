@@ -116,7 +116,6 @@ def test_export_working_proxies(tmp_path: Path):
 
     assert dest.exists()
     lines = dest.read_text(encoding="utf-8").splitlines()
-    # Only 2 working proxies, and 1.1.1.1:8080 without scheme gets prepended with http://
     assert len(lines) == 2
     assert "http://1.1.1.1:8080" in lines
     assert "socks5://2.2.2.2:1080" in lines

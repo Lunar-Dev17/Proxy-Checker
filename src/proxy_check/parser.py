@@ -23,13 +23,11 @@ def extract_port_from_input(user_input: str | int, default: int = 8080) -> int:
     if not raw:
         return default
 
-    # If full URL like scheme://...
     if "://" in raw:
         parts = urlsplit(raw)
         if parts.port is not None:
             return parts.port
 
-    # If it contains ':' (like ':8080' or '172.104.60.153:8080' or 'user:pass@host:8080')
     if ":" in raw:
         candidate = raw.rsplit(":", 1)[-1].strip()
         candidate = candidate.split("/")[0]
@@ -61,7 +59,6 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
     if not clean or clean.startswith("#"):
         return None
 
-    # 1. Check if scheme is specified (e.g., scheme://...)
     if "://" in clean:
         parts = urlsplit(clean)
         scheme = parts.scheme.lower()
@@ -80,7 +77,6 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
             password=parts.password,
         )
 
-    # 2. Check if user:pass@host:port
     if "@" in clean:
         auth_part, host_part = clean.split("@", 1)
         if ":" in auth_part:
@@ -106,7 +102,6 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
             password=password,
         )
 
-    # 3. Check colon-separated parts (host:port or host:port:user:pass)
     colon_parts = clean.split(":")
     if len(colon_parts) == 2:
         host, port_str = colon_parts
@@ -123,7 +118,6 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
         )
 
     if len(colon_parts) == 4:
-        # host:port:user:pass
         host, port_str, username, password = colon_parts
         try:
             port = int(port_str)

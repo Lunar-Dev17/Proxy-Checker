@@ -33,7 +33,6 @@ def test_parse_judge_headers_plaintext():
 
 
 def test_classify_anonymity_transparent():
-    # User's real IP is leaked in X-Forwarded-For
     headers = {
         "host": "example.com",
         "via": "1.1 squid",
@@ -44,7 +43,6 @@ def test_classify_anonymity_transparent():
 
 
 def test_classify_anonymity_anonymous():
-    # Proxy header present, but real IP is not leaked
     headers = {
         "host": "example.com",
         "via": "1.1 squid",
@@ -55,7 +53,6 @@ def test_classify_anonymity_anonymous():
 
 
 def test_classify_anonymity_elite():
-    # No proxy headers, no real IP leaked
     headers = {
         "host": "example.com",
         "user-agent": "Mozilla/5.0",

@@ -56,14 +56,12 @@ def test_geo_lookup_caching():
         )
         mock_client.get.return_value = mock_response
 
-        # First call hits mock client
         info1 = await lookup.lookup("198.51.100.1", client=mock_client)
         assert info1 is not None
         assert info1.country == "CA"
         assert info1.asn == "AS812 Rogers"
         assert mock_client.get.call_count == 1
 
-        # Second call uses cache, no additional HTTP call
         info2 = await lookup.lookup("198.51.100.1", client=mock_client)
         assert info2 == info1
         assert mock_client.get.call_count == 1
@@ -86,7 +84,6 @@ def test_geo_lookup_rate_limiting_http_429():
         assert info is not None
         assert info.country == "Rate-Limited"
 
-        # Subsequent call should also return rate-limited from state
         info_next = await lookup.lookup("198.51.100.3", client=mock_client)
         assert info_next is not None
         assert info_next.country == "Rate-Limited"
@@ -118,7 +115,6 @@ def test_geo_lookup_handles_network_error():
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Network unreachable")
 
-        # Must not crash, returns None
         info = await lookup.lookup("198.51.100.5", client=mock_client)
         assert info is None
 

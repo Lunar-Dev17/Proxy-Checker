@@ -89,7 +89,6 @@ def render_summary_table(
         console.print("[yellow]No results to display.[/yellow]")
         return
 
-    # Sort results by latency: alive proxies with lowest latency first, then dead proxies
     sorted_results = sorted(
         results,
         key=lambda r: (
@@ -296,7 +295,6 @@ async def run_checks(
                 "\n[bold yellow]Check interrupted by user (Ctrl+C). Saving partial results...[/bold yellow]"
             )
 
-    # Apply filters if specified
     filtered_results = filter_results(
         results,
         protocol=protocol_filter,
@@ -305,10 +303,8 @@ async def run_checks(
         max_latency=max_latency_filter,
     )
 
-    # Render final summary table sorted by latency
     render_summary_table(filtered_results, has_target=bool(target))
 
-    # Print summary statistics
     console.print("=" * 65)
     summary_text = (
         f"[bold]Summary:[/bold] Tested: {len(results)}/{len(proxies)} | "
@@ -327,7 +323,6 @@ async def run_checks(
         )
     console.print(summary_text + "\n")
 
-    # Handle file exports (saves filtered results or all results if no filter)
     handle_exports(filtered_results, output=output, output_working=output_working)
 
     if interrupted:

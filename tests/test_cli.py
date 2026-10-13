@@ -157,13 +157,11 @@ def test_check_command_exports_and_filters(tmp_path: Path):
         assert result.exit_code == 0
         assert "Matching Filters: 1" in result.stdout
 
-    # Verify JSON export contains filtered results
     assert out_json.exists()
     exported_data = json.loads(out_json.read_text(encoding="utf-8"))
     assert len(exported_data) == 1
     assert exported_data[0]["proxy"] == "1.2.3.4:8080"
 
-    # Verify working.txt has scraper format
     assert out_working.exists()
     working_content = out_working.read_text(encoding="utf-8")
     assert "http://1.2.3.4:8080" in working_content
@@ -199,7 +197,6 @@ def test_check_command_keyboard_interrupt_saves_partial(tmp_path: Path):
         )
         assert result.exit_code == 130
         assert "interrupted by user" in result.stdout.lower()
-        # Verify partial results were saved
         assert out_json.exists()
         saved = json.loads(out_json.read_text(encoding="utf-8"))
         assert len(saved) == 1

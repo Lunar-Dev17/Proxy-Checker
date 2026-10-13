@@ -22,7 +22,6 @@ CANDIDATE_PROTOCOLS = ("http", "socks5", "socks4")
 
 def extract_exit_ip(text: str) -> str | None:
     """Extract public IP address from JSON or plain text response."""
-    # 1. Try parsing JSON (e.g., httpbin {"origin": "..."}, ipify {"ip": "..."})
     try:
         data = json.loads(text)
         if isinstance(data, dict):
@@ -34,12 +33,10 @@ def extract_exit_ip(text: str) -> str | None:
     except Exception:
         pass
 
-    # 2. Fallback to IPv4 / IPv6 regex
     ipv4_match = re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text)
     if ipv4_match:
         return ipv4_match.group(0)
 
-    # Simple IPv6 match
     ipv6_match = re.search(r"\b(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}\b", text)
     if ipv6_match:
         return ipv6_match.group(0)
@@ -158,7 +155,6 @@ class ProxyChecker:
                             error="Could not extract exit IP from target response",
                         )
 
-                    # 1. Anonymity check via header-echo judge
                     anonymity = None
                     if self.judge_url:
                         try:
@@ -169,13 +165,11 @@ class ProxyChecker:
                         except Exception:
                             anonymity = None
 
-                    # 2. Target site verification
                     target_status = None
                     target_blocked = None
                     if self.target:
                         target_blocked, target_status = await check_target_site(client, self.target)
 
-                    # 3. Country and ASN lookup
                     country = None
                     asn = None
                     if self.geo_lookup and exit_ip:
@@ -219,10 +213,8 @@ class ProxyChecker:
         """
         async with self._semaphore:
             if proxy.scheme:
-                # Protocol is explicit: test and confirm
                 return await self._test_protocol(proxy, proxy.scheme)
 
-            # Protocol not specified: probe candidate protocols concurrently
             tasks = [
                 asyncio.create_task(self._test_protocol(proxy, scheme))
                 for scheme in CANDIDATE_PROTOCOLS
@@ -234,7 +226,6 @@ class ProxyChecker:
                     res = await completed
                     results.append(res)
                     if res.is_alive:
-                        # Cancel remaining probe tasks upon finding a working protocol
                         for t in tasks:
                             if not t.done():
                                 t.cancel()
@@ -244,7 +235,6 @@ class ProxyChecker:
                     if not t.done():
                         t.cancel()
 
-            # If none succeeded, return the primary (HTTP) failure or first failure
             http_result = next((r for r in results if r.protocol == "http"), results[0])
             return CheckResult(
                 proxy=proxy.raw,

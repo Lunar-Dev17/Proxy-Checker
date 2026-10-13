@@ -59,7 +59,6 @@ def export_results(results: list[CheckResult], output_path: Path | str) -> None:
             for r in results:
                 writer.writerow(asdict(r))
     else:
-        # Default plain text export
         lines = [
             f"{r.proxy} | {'ALIVE' if r.is_alive else 'DEAD'} | {r.protocol or '-'} | "
             f"{r.latency_ms or '-'}ms | {r.exit_ip or '-'} | {r.anonymity or '-'} | "
@@ -78,7 +77,6 @@ def export_working_proxies(results: list[CheckResult], output_path: Path | str) 
     lines: list[str] = []
     for r in working:
         proxy_str = r.proxy
-        # If proxy string doesn't already have scheme and protocol is known, prepend it
         if "://" not in proxy_str and r.protocol:
             lines.append(f"{r.protocol}://{proxy_str}")
         else:

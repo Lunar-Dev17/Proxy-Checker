@@ -111,29 +111,23 @@ def test_parse_proxy_file(tmp_path: Path):
 def test_extract_port_from_input():
     from proxy_check.parser import extract_port_from_input
 
-    # Direct integer or string
     assert extract_port_from_input(8080) == 8080
     assert extract_port_from_input("8080") == 8080
     assert extract_port_from_input("  8080  ") == 8080
 
-    # Empty string defaults
     assert extract_port_from_input("", default=8080) == 8080
     assert extract_port_from_input("   ", default=3128) == 3128
 
-    # Colon prefix
     assert extract_port_from_input(":8080") == 8080
     assert extract_port_from_input(" :3128 ") == 3128
 
-    # Full host:port strings (user pasting an IP with port)
     assert extract_port_from_input("172.104.60.153:8080") == 8080
     assert extract_port_from_input("example.com:1080") == 1080
     assert extract_port_from_input("user:pass@1.2.3.4:8080") == 8080
 
-    # Full URLs
     assert extract_port_from_input("http://1.2.3.4:8080") == 8080
     assert extract_port_from_input("socks5://1.2.3.4:1080/path") == 1080
 
-    # Invalid values
     with pytest.raises(ValueError, match="does not contain a valid port number"):
         extract_port_from_input("invalid")
 

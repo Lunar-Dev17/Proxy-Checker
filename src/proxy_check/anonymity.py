@@ -6,7 +6,6 @@ import httpx
 
 DEFAULT_JUDGE_URL = "https://httpbin.org/headers"
 
-# Common headers that indicate proxy usage
 PROXY_HEADERS = {
     "via",
     "x-forwarded-for",
@@ -27,7 +26,6 @@ PROXY_HEADERS = {
 
 def parse_judge_headers(body: str) -> dict[str, str]:
     """Parse header echo from JSON or plain text proxy judge responses."""
-    # 1. Try parsing JSON (e.g., httpbin.org/headers)
     try:
         data = json.loads(body)
         if isinstance(data, dict):
@@ -38,7 +36,6 @@ def parse_judge_headers(body: str) -> dict[str, str]:
     except Exception:
         pass
 
-    # 2. Try parsing plain text proxy judges (e.g. HTTP_VIA = ... or Header: Value)
     headers: dict[str, str] = {}
     for line in body.splitlines():
         line = line.strip()
@@ -65,19 +62,16 @@ def classify_anonymity(headers: dict[str, str], real_ip: str | None = None) -> s
     - anonymous: reveals proxy usage (via proxy headers) without leaking real IP
     - elite: no trace of proxy usage in headers
     """
-    # 1. Check if real IP is leaked anywhere in headers
     if real_ip and real_ip.strip():
         clean_ip = real_ip.strip()
         for v in headers.values():
             if clean_ip in v:
                 return "transparent"
 
-    # 2. Check if any proxy-revealing headers are present and non-empty
     for proxy_header in PROXY_HEADERS:
         if proxy_header in headers and headers[proxy_header].strip():
             return "anonymous"
 
-    # 3. No proxy headers and real IP not leaked
     return "elite"
 
 

@@ -43,19 +43,16 @@ class GeoLookup:
 
     def _parse_response(self, data: dict) -> GeoInfo:
         """Extract country and ASN from provider JSON response."""
-        # Check ip-api format
         if "as" in data:
             asn = data.get("as")
             country = data.get("countryCode") or data.get("country")
             return GeoInfo(country=country, asn=asn)
 
-        # Check ipinfo format
         if "org" in data:
             asn = data.get("org")
             country = data.get("country")
             return GeoInfo(country=country, asn=asn)
 
-        # General fallbacks
         country = data.get("country_code") or data.get("countryCode") or data.get("country")
         asn = data.get("asn") or data.get("as_number") or data.get("org")
         return GeoInfo(country=country, asn=str(asn) if asn else None)
@@ -66,7 +63,6 @@ class GeoLookup:
             return None
 
         async with self._lock:
-            # Check local cache
             if ip in self._cache:
                 return self._cache[ip]
 
@@ -82,7 +78,6 @@ class GeoLookup:
                 async with httpx.AsyncClient(timeout=self.timeout) as local_client:
                     resp = await local_client.get(url)
 
-            # Check rate limiting status
             if resp.status_code == 429:
                 async with self._lock:
                     self._rate_limited = True
@@ -96,7 +91,6 @@ class GeoLookup:
 
             data = resp.json()
 
-            # Check for provider-level rate-limit messages (e.g. ip-api.com)
             if isinstance(data, dict) and data.get("status") == "fail":
                 msg = str(data.get("message", "")).lower()
                 if "rate" in msg or "limit" in msg:

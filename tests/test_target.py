@@ -9,7 +9,6 @@ from proxy_check.target import check_target_site, is_captcha_page
 
 
 def test_is_captcha_page_detection():
-    # Cloudflare challenge
     assert is_captcha_page(
         403, "<html><title>Just a moment...</title><div id='challenge-platform'></div></html>"
     )
@@ -18,15 +17,12 @@ def test_is_captcha_page_detection():
         "<script src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>cf-turnstile",
     )
 
-    # reCAPTCHA & hCaptcha
     assert is_captcha_page(200, "<div class='g-recaptcha' data-sitekey='xyz'></div>")
     assert is_captcha_page(200, "<script src='https://hcaptcha.com/1/api.js'></script>")
 
-    # PerimeterX & DataDome
     assert is_captcha_page(403, "<script>window._pxAppId = 'PX123';</script>perimeterx")
     assert is_captcha_page(403, "<html>datadome captcha challenge</html>")
 
-    # Clean HTML
     assert not is_captcha_page(
         200, "<html><head><title>Scraping Target</title></head><body><h1>Welcome</h1></body></html>"
     )
