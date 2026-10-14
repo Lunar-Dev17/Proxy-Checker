@@ -30,7 +30,7 @@ def extract_exit_ip(text: str) -> str | None:
                 ips = [ip.strip() for ip in val.split(",") if ip.strip()]
                 if ips:
                     return ips[0]
-    except Exception:
+    except (json.JSONDecodeError, ValueError):
         pass
 
     ipv4_match = re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text)
@@ -92,13 +92,17 @@ class ProxyChecker:
         self.concurrency = concurrency
         self.judge_url = judge_url
         self.target = target
-        self.real_ip = real_ip
         self._real_ip_resolved: str | None = real_ip
         self._real_ip_lock = asyncio.Lock()
         self._semaphore = asyncio.Semaphore(concurrency)
         self.geo_lookup = (
             GeoLookup(provider=geo_provider, timeout=timeout) if geo_provider else None
         )
+
+    @property
+    def real_ip(self) -> str | None:
+        """Configured or resolved client IP address."""
+        return self._real_ip_resolved
 
     async def get_real_ip(self) -> str | None:
         """Fetch the direct client IP once if not already resolved."""
@@ -112,7 +116,7 @@ class ProxyChecker:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.get(self.target_url)
                     self._real_ip_resolved = extract_exit_ip(resp.text)
-            except Exception:
+            except (TimeoutError, httpx.HTTPError):
                 self._real_ip_resolved = None
             return self._real_ip_resolved
 
@@ -162,7 +166,7 @@ class ProxyChecker:
                             anonymity, _ = await check_anonymity(
                                 client, self.judge_url, real_ip=real_ip
                             )
-                        except Exception:
+                        except (TimeoutError, httpx.HTTPError):
                             anonymity = None
 
                     target_status = None
@@ -178,7 +182,7 @@ class ProxyChecker:
                             if geo_info:
                                 country = geo_info.country
                                 asn = geo_info.asn
-                        except Exception:
+                        except (TimeoutError, httpx.HTTPError):
                             pass
 
                     return CheckResult(
@@ -247,8 +251,13 @@ class ProxyChecker:
     async def check_proxies_stream(self, proxies: Sequence[Proxy]) -> AsyncIterator[CheckResult]:
         """Check multiple proxies concurrently and stream results as they finish."""
         tasks = [asyncio.create_task(self.check_proxy(p)) for p in proxies]
-        for finished in asyncio.as_completed(tasks):
-            yield await finished
+        try:
+            for finished in asyncio.as_completed(tasks):
+                yield await finished
+        finally:
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
 
     async def check_proxies(
         self,

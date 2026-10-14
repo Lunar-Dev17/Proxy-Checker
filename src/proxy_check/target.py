@@ -65,5 +65,5 @@ async def check_target_site(
 
         return False, f"Passed ({response.status_code})"
 
-    except Exception as exc:
+    except (TimeoutError, httpx.HTTPError) as exc:
         return True, f"Failed: {exc}"

@@ -33,7 +33,7 @@ def parse_judge_headers(body: str) -> dict[str, str]:
             if isinstance(headers, dict):
                 return {k.lower(): str(v) for k, v in headers.items()}
             return {k.lower(): str(v) for k, v in data.items() if isinstance(v, (str, int, float))}
-    except Exception:
+    except (json.JSONDecodeError, ValueError):
         pass
 
     headers: dict[str, str] = {}
@@ -96,5 +96,5 @@ async def check_anonymity(
 
         anonymity = classify_anonymity(headers, real_ip=real_ip)
         return anonymity, None
-    except Exception as exc:
+    except (TimeoutError, httpx.HTTPError) as exc:
         return None, f"Judge check failed: {exc}"

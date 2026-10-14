@@ -60,13 +60,37 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
         return None
 
     if "://" in clean:
-        parts = urlsplit(clean)
-        scheme = parts.scheme.lower()
+        scheme_prefix, rest = clean.split("://", 1)
+        scheme = scheme_prefix.lower()
         if scheme not in SUPPORTED_SCHEMES:
             raise ValueError(f"Unsupported proxy scheme: '{scheme}' in '{clean}'")
 
+        if "@" not in rest and rest.count(":") >= 3:
+            parts = rest.split(":", 3)
+            if parts[1].isdigit():
+                host, port_str, username, password = parts
+                port = int(port_str)
+                if not (1 <= port <= 65535):
+                    raise ValueError(
+                        f"Port {port} is out of valid port range (1-65535) in proxy: '{clean}'"
+                    )
+                return Proxy(
+                    raw=clean,
+                    host=host,
+                    port=port,
+                    scheme=scheme,
+                    username=username,
+                    password=password,
+                )
+
+        parts = urlsplit(clean)
         if not parts.hostname or parts.port is None:
             raise ValueError(f"Invalid host or port in proxy: '{clean}'")
+
+        if not (1 <= parts.port <= 65535):
+            raise ValueError(
+                f"Port {parts.port} is out of valid port range (1-65535) in proxy: '{clean}'"
+            )
 
         return Proxy(
             raw=clean,
@@ -77,22 +101,54 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
             password=parts.password,
         )
 
-    if "@" in clean:
-        auth_part, host_part = clean.split("@", 1)
-        if ":" in auth_part:
-            username, password = auth_part.split(":", 1)
-        else:
-            username, password = auth_part, None
-
-        if ":" not in host_part:
-            raise ValueError(f"Missing port in proxy: '{clean}'")
-
-        host, port_str = host_part.rsplit(":", 1)
+    if clean.startswith("[") and "]:" in clean:
+        host, rest = clean[1:].split("]:", 1)
+        parts = rest.split(":", 2)
         try:
-            port = int(port_str)
+            port = int(parts[0])
         except ValueError as err:
-            raise ValueError(f"Invalid port '{port_str}' in proxy: '{clean}'") from err
+            raise ValueError(f"Invalid port '{parts[0]}' in proxy: '{clean}'") from err
 
+        if not (1 <= port <= 65535):
+            raise ValueError(
+                f"Port {port} is out of valid port range (1-65535) in proxy: '{clean}'"
+            )
+
+        if len(parts) == 1:
+            return Proxy(raw=clean, host=host, port=port, scheme=None)
+        if len(parts) == 3:
+            return Proxy(
+                raw=clean,
+                host=host,
+                port=port,
+                scheme=None,
+                username=parts[1],
+                password=parts[2],
+            )
+        raise ValueError(f"Unrecognized proxy format: '{clean}'")
+
+    colon_parts = clean.split(":")
+    if len(colon_parts) == 2 and colon_parts[1].isdigit():
+        host, port_str = colon_parts
+        port = int(port_str)
+        if not (1 <= port <= 65535):
+            raise ValueError(
+                f"Port {port} is out of valid port range (1-65535) in proxy: '{clean}'"
+            )
+        return Proxy(
+            raw=clean,
+            host=host,
+            port=port,
+            scheme=None,
+        )
+
+    if len(colon_parts) >= 4 and colon_parts[1].isdigit():
+        host, port_str, username, password = clean.split(":", 3)
+        port = int(port_str)
+        if not (1 <= port <= 65535):
+            raise ValueError(
+                f"Port {port} is out of valid port range (1-65535) in proxy: '{clean}'"
+            )
         return Proxy(
             raw=clean,
             host=host,
@@ -102,27 +158,29 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
             password=password,
         )
 
-    colon_parts = clean.split(":")
-    if len(colon_parts) == 2:
-        host, port_str = colon_parts
+    if "@" in clean:
+        auth_part, host_part = clean.rsplit("@", 1)
+        if ":" in auth_part:
+            username, password = auth_part.split(":", 1)
+        else:
+            username, password = auth_part, None
+
+        if host_part.startswith("[") and "]:" in host_part:
+            host, port_str = host_part[1:].split("]:", 1)
+        elif ":" in host_part:
+            host, port_str = host_part.rsplit(":", 1)
+        else:
+            raise ValueError(f"Missing port in proxy: '{clean}'")
+
         try:
             port = int(port_str)
         except ValueError as err:
             raise ValueError(f"Invalid port '{port_str}' in proxy: '{clean}'") from err
 
-        return Proxy(
-            raw=clean,
-            host=host,
-            port=port,
-            scheme=None,
-        )
-
-    if len(colon_parts) == 4:
-        host, port_str, username, password = colon_parts
-        try:
-            port = int(port_str)
-        except ValueError as err:
-            raise ValueError(f"Invalid port '{port_str}' in proxy: '{clean}'") from err
+        if not (1 <= port <= 65535):
+            raise ValueError(
+                f"Port {port} is out of valid port range (1-65535) in proxy: '{clean}'"
+            )
 
         return Proxy(
             raw=clean,
@@ -135,6 +193,10 @@ def parse_proxy(line: str, default_port: int | None = None) -> Proxy | None:
 
     if ":" not in clean and "://" not in clean:
         if default_port is not None:
+            if not (1 <= default_port <= 65535):
+                raise ValueError(
+                    f"Default port {default_port} is out of valid port range (1-65535)"
+                )
             return Proxy(
                 raw=f"{clean}:{default_port}",
                 host=clean,

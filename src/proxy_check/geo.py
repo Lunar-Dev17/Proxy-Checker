@@ -107,7 +107,7 @@ class GeoLookup:
                 self._cache[ip] = info
             return info
 
-        except Exception:
+        except (TimeoutError, httpx.HTTPError, ValueError):
             async with self._lock:
                 self._cache[ip] = None
             return None

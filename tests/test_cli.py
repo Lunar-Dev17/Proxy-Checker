@@ -173,6 +173,7 @@ def test_check_command_keyboard_interrupt_saves_partial(tmp_path: Path):
     proxy_file = tmp_path / "proxies.txt"
     proxy_file.write_text("1.1.1.1:80\n2.2.2.2:80\n", encoding="utf-8")
     out_json = tmp_path / "partial.json"
+    out_working = tmp_path / "partial_working.txt"
 
     r1 = CheckResult(
         proxy="1.1.1.1:80",
@@ -193,6 +194,8 @@ def test_check_command_keyboard_interrupt_saves_partial(tmp_path: Path):
                 str(proxy_file),
                 "--output",
                 str(out_json),
+                "--output-working",
+                str(out_working),
             ],
         )
         assert result.exit_code == 130
@@ -201,6 +204,8 @@ def test_check_command_keyboard_interrupt_saves_partial(tmp_path: Path):
         saved = json.loads(out_json.read_text(encoding="utf-8"))
         assert len(saved) == 1
         assert saved[0]["proxy"] == "1.1.1.1:80"
+        assert out_working.exists()
+        assert "http://1.1.1.1:80" in out_working.read_text(encoding="utf-8")
 
 
 def test_check_command_missing_port_non_interactive(tmp_path: Path):

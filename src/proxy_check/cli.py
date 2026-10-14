@@ -1,6 +1,7 @@
 """CLI interface for proxy-check."""
 
 import asyncio
+import io
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
+    except (AttributeError, io.UnsupportedOperation):
         pass
 from rich.progress import (
     BarColumn,
@@ -49,7 +50,7 @@ def is_interactive() -> bool:
     """Check if standard input is attached to an interactive terminal."""
     try:
         return sys.stdin is not None and sys.stdin.isatty()
-    except Exception:
+    except (AttributeError, ValueError):
         return False
 
 
@@ -182,7 +183,7 @@ def handle_exports(
             console.print(
                 f"[green]Exported {len(results)} results to:[/green] [bold]{output}[/bold]"
             )
-        except Exception as exc:
+        except (OSError, ValueError, TypeError) as exc:
             console.print(f"[bold red]Failed to export results to {output}:[/bold red] {exc}")
 
     if output_working:
@@ -192,7 +193,7 @@ def handle_exports(
             console.print(
                 f"[green]Exported {working_count} working proxies to:[/green] [bold]{output_working}[/bold]"
             )
-        except Exception as exc:
+        except (OSError, ValueError, TypeError) as exc:
             console.print(
                 f"[bold red]Failed to export working proxies to {output_working}:[/bold red] {exc}"
             )
@@ -229,7 +230,7 @@ async def run_checks(
         else:
             console.print(f"[bold red]Error reading proxies:[/bold red] {exc}")
             raise typer.Exit(code=1) from exc
-    except Exception as exc:
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
         console.print(f"[bold red]Error reading proxies:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
 

@@ -85,6 +85,59 @@ def test_parse_invalid_format():
     with pytest.raises(ValueError):
         parse_proxy("1.2.3.4:invalid_port")
 
+    with pytest.raises(ValueError, match="out of valid port range"):
+        parse_proxy("1.2.3.4:0")
+
+    with pytest.raises(ValueError, match="out of valid port range"):
+        parse_proxy("1.2.3.4:70000")
+
+
+def test_parse_readme_formats():
+    """Verify that every proxy format listed in the README parses correctly."""
+    p1 = parse_proxy("192.168.1.1:8080")
+    assert p1 is not None and p1.host == "192.168.1.1" and p1.port == 8080
+
+    p2 = parse_proxy("admin:secret@192.168.1.1:8080")
+    assert p2 is not None and p2.host == "192.168.1.1" and p2.port == 8080
+    assert p2.username == "admin" and p2.password == "secret"
+
+    p3 = parse_proxy("192.168.1.1:8080:admin:secret")
+    assert p3 is not None and p3.host == "192.168.1.1" and p3.port == 8080
+    assert p3.username == "admin" and p3.password == "secret"
+
+    p4 = parse_proxy("http://192.168.1.1:8080")
+    assert p4 is not None and p4.scheme == "http" and p4.host == "192.168.1.1" and p4.port == 8080
+
+    p5 = parse_proxy("https://192.168.1.1:8443")
+    assert p5 is not None and p5.scheme == "https" and p5.host == "192.168.1.1" and p5.port == 8443
+
+    p6 = parse_proxy("socks4://192.168.1.1:1080")
+    assert p6 is not None and p6.scheme == "socks4" and p6.host == "192.168.1.1" and p6.port == 1080
+
+    p7 = parse_proxy("socks5://admin:secret@192.168.1.1:1080")
+    assert p7 is not None and p7.scheme == "socks5" and p7.host == "192.168.1.1" and p7.port == 1080
+    assert p7.username == "admin" and p7.password == "secret"
+
+
+def test_parse_extended_formats():
+    """Test extended formats such as passwords with colons, IPv6, and scheme with trailing auth."""
+    # Password with colons in host:port:user:pass
+    p = parse_proxy("192.168.1.1:8080:myuser:p@ss:w0rd:123")
+    assert p is not None and p.username == "myuser" and p.password == "p@ss:w0rd:123"
+
+    # Scheme with host:port:user:pass
+    p_scheme = parse_proxy("http://192.168.1.1:8080:admin:secret")
+    assert p_scheme is not None
+    assert p_scheme.scheme == "http" and p_scheme.host == "192.168.1.1" and p_scheme.port == 8080
+    assert p_scheme.username == "admin" and p_scheme.password == "secret"
+
+    # Bracketed IPv6
+    p_ipv6 = parse_proxy("[2001:db8::1]:8080")
+    assert p_ipv6 is not None and p_ipv6.host == "2001:db8::1" and p_ipv6.port == 8080
+
+    p_ipv6_auth = parse_proxy("user:pass@[::1]:8080")
+    assert p_ipv6_auth is not None and p_ipv6_auth.host == "::1" and p_ipv6_auth.port == 8080
+
 
 def test_parse_proxies_list():
     lines = [

@@ -44,6 +44,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Scratch and test data files
+# Scratch, log, environment, and export files
 test.txt
 *.tmp
+*.log
+.env
+.env.*
+results.json
+results.csv
+working.txt
+working_proxies.txt

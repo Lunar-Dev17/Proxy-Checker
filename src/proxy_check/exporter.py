@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from proxy_check.models import CheckResult
+from proxy_check.parser import parse_proxy
 
 
 def filter_results(
@@ -77,8 +78,17 @@ def export_working_proxies(results: list[CheckResult], output_path: Path | str) 
     lines: list[str] = []
     for r in working:
         proxy_str = r.proxy
-        if "://" not in proxy_str and r.protocol:
-            lines.append(f"{r.protocol}://{proxy_str}")
+        if "://" in proxy_str:
+            lines.append(proxy_str)
+        elif r.protocol:
+            try:
+                parsed = parse_proxy(proxy_str)
+                if parsed is not None:
+                    lines.append(parsed.to_url(scheme=r.protocol))
+                else:
+                    lines.append(f"{r.protocol}://{proxy_str}")
+            except ValueError:
+                lines.append(f"{r.protocol}://{proxy_str}")
         else:
             lines.append(proxy_str)
 

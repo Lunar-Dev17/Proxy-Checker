@@ -111,11 +111,20 @@ def test_export_results_csv(tmp_path: Path):
 
 def test_export_working_proxies(tmp_path: Path):
     dest = tmp_path / "working.txt"
-    results = sample_results()
+    results = sample_results() + [
+        CheckResult(
+            proxy="4.4.4.4:8080:myuser:mypass",
+            is_alive=True,
+            latency_ms=90.0,
+            protocol="http",
+            exit_ip="4.4.4.4",
+        )
+    ]
     export_working_proxies(results, dest)
 
     assert dest.exists()
     lines = dest.read_text(encoding="utf-8").splitlines()
-    assert len(lines) == 2
+    assert len(lines) == 3
     assert "http://1.1.1.1:8080" in lines
     assert "socks5://2.2.2.2:1080" in lines
+    assert "http://myuser:mypass@4.4.4.4:8080" in lines
